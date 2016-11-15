@@ -90,6 +90,10 @@ public class Server {
 					{
 						sendPrivate(message);
 					}
+					if((message.getType()).equals(Type.FILE))
+					{
+						sendPrivate(message);
+					}
 					if((message.getType()).equals(Type.EXIT))
 						connection.close();
 					System.out.println(handlerMap.size());
@@ -105,7 +109,6 @@ public class Server {
 			for(Map.Entry<String, Connection> entry : handlerMap.entrySet())
 			{
 				entry.getValue().send(message);
-				System.out.println("Message sent");
 			}
 		}
 		private void sendPrivate(Message message)

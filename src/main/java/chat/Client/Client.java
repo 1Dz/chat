@@ -8,7 +8,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.List;
 
 import chat.ConsoleHelper;
@@ -53,7 +52,7 @@ public class Client {
 					connection.close();
 					ifConnected = false;
 				}
-				else if(s.startsWith("private:"))
+				else if(s.startsWith("private%"))
 				{
 					String[] temp = s.split("%");
 					sendPrivate(temp[2], temp[1]);
@@ -61,7 +60,6 @@ public class Client {
 				else if(s.startsWith("file%"))
 				{
 					String[] temp = s.split("%");
-					System.out.println(temp[0] + temp[1] + temp[2]);
 					sendFile(temp[2], temp[1]);
 				}
 				else 
@@ -82,11 +80,11 @@ public class Client {
 	private void sendFile(String path, String adress)
 	{
 		try {
-			System.out.println(path + " --- " + adress);
 			BufferedInputStream bis = new BufferedInputStream(new FileInputStream(path));
 			byte[] outByte = new byte[bis.available()];
 			bis.read(outByte);
-			connection.send(new Message(Type.PRIVATE, this.name, adress, outByte));
+			bis.close();
+			connection.send(new Message(Type.FILE, this.name, adress, outByte));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -183,6 +181,7 @@ public class Client {
 				
 				bos.write((byte[]) message.getMess());
 				bos.flush();
+				bos.close();
 			} catch (FileNotFoundException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
