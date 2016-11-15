@@ -33,7 +33,7 @@ public class Server {
 			Socket socket;
 			try {
 				socket = serverSocket.accept();
-				ConsoleHelper.log("Connection accepted", getClass().getName(), "info");
+				ConsoleHelper.log("Connection accepted ", getClass().getName(), "info");
 				Handler handler = new Handler(socket);
 				handler.start();
 			} catch (IOException e) {
@@ -83,14 +83,20 @@ public class Server {
 					}
 					if((message.getType()).equals(Type.PUBLIC))
 					{
+						System.out.println("Message recieved");
 						broadCast(message);
 					}
 					if((message.getType()).equals(Type.PRIVATE))
 					{
 						sendPrivate(message);
 					}
+					if((message.getType()).equals(Type.FILE))
+					{
+						sendPrivate(message);
+					}
 					if((message.getType()).equals(Type.EXIT))
 						connection.close();
+					System.out.println(handlerMap.size());
 				}
 			}
 			catch(Exception e)

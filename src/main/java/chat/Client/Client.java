@@ -1,9 +1,13 @@
 package chat.Client;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.List;
 
 import chat.ConsoleHelper;
@@ -42,7 +46,28 @@ public class Client {
 			String s;
 			while((s = ConsoleHelper.readLine()) != null)
 			{
-				connection.send(new Message(Type.PUBLIC, this.name, s));
+				if(s.equalsIgnoreCase("exit"))
+				{
+					connection.send(new Message(Type.EXIT, null, null));
+					connection.close();
+					ifConnected = false;
+				}
+				else if(s.startsWith("private%"))
+				{
+					String[] temp = s.split("%");
+					sendPrivate(temp[2], temp[1]);
+				}
+				else if(s.startsWith("file%"))
+				{
+					String[] temp = s.split("%");
+					sendFile(temp[2], temp[1]);
+				}
+				else 
+					{
+						connection.send(new Message(Type.PUBLIC, this.name, s));
+						System.out.println("Message sent");
+					}
+				
 			}
 		}
 	}
@@ -52,6 +77,27 @@ public class Client {
 		this.name = name;
 	}
 	
+	private void sendFile(String path, String adress)
+	{
+		try {
+			BufferedInputStream bis = new BufferedInputStream(new FileInputStream(path));
+			byte[] outByte = new byte[bis.available()];
+			bis.read(outByte);
+			bis.close();
+			connection.send(new Message(Type.FILE, this.name, adress, outByte));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void sendPrivate(String message, String adress)
+	{
+		connection.send(new Message(Type.PRIVATE, this.name, adress, message));
+	}
 
 	class SocketHandler extends Thread
 	{
@@ -75,7 +121,7 @@ public class Client {
 				e.printStackTrace();
 			}
 		}
-		public void incomingToServ()
+		private void incomingToServ()
 		{
 			ConsoleHelper.writeMessage(ConsoleHelper.message("introduce"));
 			String name = ConsoleHelper.readLine();
@@ -88,8 +134,8 @@ public class Client {
 				message = connection.recieve();
 				if(message.getType().equals(Type.WELCOME)){
 					ConsoleHelper.writeMessage(String.format(ConsoleHelper.message("welcome"), Client.this.name));
-					message = connection.recieve();
-					usersList = (List) message.getMess();
+//					message = connection.recieve();
+//					usersList = (List) message.getMess();
 					notifyConnectionStatusChanged(true);
 					break;
 				}
@@ -97,12 +143,25 @@ public class Client {
 					ConsoleHelper.writeMessage(ConsoleHelper.message("wrongname"));
 			}
 		}
-		public void clientMainLoop()
+		private void clientMainLoop()
 		{
 			while(true)
 			{
 				Message message = connection.recieve();
-				ConsoleHelper.writeMessage(message.getSender() + ": " + message.getMess());
+				if(message.getType().equals(Type.PRIVATE))
+				{
+					ConsoleHelper.writeMessage("PRIVATE from: " + message.getSender() + ": " + message.getMess());
+				}
+				else if(message.getType().equals(Type.FILE))
+				{
+					ConsoleHelper.writeMessage("FILE from: " + message.getSender() + ". Enter path to save");
+					String temp = ConsoleHelper.readLine();
+					recieveFile(message, temp);
+				}
+				else if(message.getType().equals(Type.PUBLIC))
+				{
+					ConsoleHelper.writeMessage(message.getSender() + " : " + message.getMess());
+				}
 			}
 		}
 		protected void notifyConnectionStatusChanged(boolean clientConnected) {
@@ -113,8 +172,24 @@ public class Client {
             synchronized (Client.this) {
                 Client.this.notify();
             }
-}
+		}
 		
+		private void recieveFile(Message message, String path)
+		{
+			try {
+				BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(path));
+				
+				bos.write((byte[]) message.getMess());
+				bos.flush();
+				bos.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 	}
 	
 }
